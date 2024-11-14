@@ -10,7 +10,7 @@
 增加了绿色的引导小球（即兔子先生），引导玩家走到迷宫终点。
 增加了玩家走过的格子的变白效果（后期可以替换成花朵生长的动画）。
 增加了游戏开始时的对话框，方便添加故事情节和新手引导。
-格子大小标准为40像素*40像素，尝试铺了草地素材，素材名称为grass2.gif。
+格子大小标准为40像素*40像素。
 '''
 
 import pygame
@@ -29,7 +29,7 @@ GUIDE_COLOR = "green"
 BACKGROUND_COLOR = "white"
 MAZE_COLOR = "black"
 ITEM_COLOR = "blue"
-VISITED_COLOR = "white"
+VISITED_COLOR = "red"
 DIALOG_BOX_COLOR = (200, 200, 200)
 DIALOG_TEXT_COLOR = (0, 0, 0)
 FPS = 30
@@ -72,10 +72,6 @@ screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Maze Game")
 clock = pygame.time.Clock()
 
-# Load and scale the grass image
-grass_image = pygame.image.load("grass2.gif")
-grass_image = pygame.transform.scale(grass_image, (TILE_SIZE, TILE_SIZE))
-
 # Track visited tiles
 visited_tiles = {}
 
@@ -85,13 +81,10 @@ font = pygame.font.SysFont(None, 24)
 def draw_maze():
     for y, row in enumerate(MAZE):
         for x, tile in enumerate(row):
-            if tile == 1:
-                color = MAZE_COLOR
-                pygame.draw.rect(screen, color, (x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE))
-            else:
-                screen.blit(grass_image, (x * TILE_SIZE, y * TILE_SIZE))
-                if (x, y) in visited_tiles:
-                    pygame.draw.rect(screen, VISITED_COLOR, (x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE), 1)
+            color = MAZE_COLOR if tile == 1 else BACKGROUND_COLOR
+            if (x, y) in visited_tiles:
+                color = VISITED_COLOR
+            pygame.draw.rect(screen, color, (x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE))
 
 def draw_dialog_box():
     dialog_rect = pygame.Rect((WIDTH - 700) // 2, HEIGHT - 100, 700, 100)
