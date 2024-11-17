@@ -1,5 +1,6 @@
 import pygame
 import sys
+import os
 
 # 初始化Pygame
 pygame.init()
@@ -11,11 +12,11 @@ PLAYER_RADIUS = 15
 FPS = 30
 PLAYER_SPEED = TILE_SIZE
 
+# 文件夹路径
+IMAGE_FOLDER = "images"
+
 # 颜色定义
-PLAYER_COLOR = "red"
 BACKGROUND_COLOR = "white"
-MAZE_COLOR = "black"
-EXIT_COLOR = "green"
 
 # 迷宫布局（1表示墙壁，0表示路径）
 MAZE = [
@@ -40,6 +41,19 @@ MAZE = [
 player_pos = [1 * TILE_SIZE + TILE_SIZE // 2, 1 * TILE_SIZE + TILE_SIZE // 2]  # 玩家起始位置
 exit_pos = (18, 13)  # 出口位置
 
+# 加载图片
+def load_images(folder_path):
+    images = {}
+    for filename in os.listdir(folder_path):
+        if filename.endswith(('.png', '.jpg', '.jpeg', '.bmp', '.gif')):
+            name = os.path.splitext(filename)[0]
+            img = pygame.image.load(os.path.join(folder_path, filename))
+            images[name] = pygame.transform.scale(img, (TILE_SIZE, TILE_SIZE))
+    return images
+
+# 加载文件夹内的图片
+images = load_images(IMAGE_FOLDER)
+
 # 游戏状态
 last_move_time = 0  # 上一次移动的时间
 
@@ -52,8 +66,14 @@ clock = pygame.time.Clock()
 def draw_maze():
     for y, row in enumerate(MAZE):
         for x, tile in enumerate(row):
-            if tile == 1:
-                pygame.draw.rect(screen, MAZE_COLOR, (x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE))
+            if tile == 1:  # 墙壁
+                if 'wall' in images:
+                    screen.blit(images['wall'], (x * TILE_SIZE, y * TILE_SIZE))
+                else:
+                    pygame.draw.rect(screen, 'black', (x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE))
+            elif tile == 0:  # 路径
+                if 'road' in images:
+                    screen.blit(images['road'], (x * TILE_SIZE, y * TILE_SIZE))
 
 def can_move(new_pos):
     # 检查新位置是否在迷宫边界内，并且不与墙壁碰撞
@@ -93,11 +113,18 @@ while running:
             player_pos = new_pos  # 更新玩家位置
             last_move_time = current_time  # 更新最后移动时间
 
-    # 绘制游戏界面
+    # 绘制游戏元素
     screen.fill(BACKGROUND_COLOR)
     draw_maze()
-    pygame.draw.circle(screen, PLAYER_COLOR, player_pos, PLAYER_RADIUS)
-    pygame.draw.rect(screen, EXIT_COLOR, (exit_pos[0] * TILE_SIZE, exit_pos[1] * TILE_SIZE, TILE_SIZE, TILE_SIZE))
+    if 'player' in images:
+        screen.blit(images['player'], (player_pos[0] - TILE_SIZE // 2, player_pos[1] - TILE_SIZE // 2))
+    else:
+        pygame.draw.circle(screen, 'red', player_pos, TILE_SIZE // 2)
+
+    if 'exit' in images:
+        screen.blit(images['exit'], (exit_pos[0] * TILE_SIZE, exit_pos[1] * TILE_SIZE))
+    else:
+        pygame.draw.rect(screen, 'green', (exit_pos[0] * TILE_SIZE, exit_pos[1] * TILE_SIZE, TILE_SIZE, TILE_SIZE))
 
     pygame.display.flip()
     clock.tick(FPS)
