@@ -40,6 +40,8 @@ MAZE = [
 # 对象位置
 player_pos = [1 * TILE_SIZE + TILE_SIZE // 2, 1 * TILE_SIZE + TILE_SIZE // 2]  # 玩家起始位置
 exit_pos = (18, 13)  # 出口位置
+item_pos = [9 * TILE_SIZE + TILE_SIZE // 2, 3 * TILE_SIZE + TILE_SIZE // 2]  # 缩小药水位置
+narrow_path_pos = [(11, 9), (13, 9)]  # 狭窄障碍位置
 
 # 加载图片
 def load_images(folder_path):
@@ -51,11 +53,13 @@ def load_images(folder_path):
             images[name] = pygame.transform.scale(img, (TILE_SIZE, TILE_SIZE))
     return images
 
-# 加载文件夹内的图片
+# 加载图片
 images = load_images(IMAGE_FOLDER)
 
 # 游戏状态
-last_move_time = 0  # 上一次移动的时间
+player_shrunk = False
+last_move_time = 0
+move_cooldown = 100
 
 # 设置显示窗口
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -72,8 +76,8 @@ def draw_maze():
                 else:
                     pygame.draw.rect(screen, 'black', (x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE))
             elif tile == 0:  # 路径
-                if 'road' in images:
-                    screen.blit(images['road'], (x * TILE_SIZE, y * TILE_SIZE))
+                if 'path' in images:
+                    screen.blit(images['path'], (x * TILE_SIZE, y * TILE_SIZE))
 
 def can_move(new_pos):
     # 检查新位置是否在迷宫边界内，并且不与墙壁碰撞
@@ -81,12 +85,11 @@ def can_move(new_pos):
     grid_y = new_pos[1] // TILE_SIZE
     if 0 <= grid_x < len(MAZE[0]) and 0 <= grid_y < len(MAZE):
         if MAZE[grid_y][grid_x] == 0:
+            # 检查是否是狭窄障碍
+            if (grid_x, grid_y) in narrow_path_pos and not player_shrunk:
+                return False  # 不能通过狭窄障碍
             return True
     return False
-
-player_shrunk = False
-last_move_time = 0
-move_cooldown = 100
 
 running = True
 while running:
@@ -113,18 +116,40 @@ while running:
             player_pos = new_pos  # 更新玩家位置
             last_move_time = current_time  # 更新最后移动时间
 
+        # 检查玩家是否拾取到缩小药水
+        if abs(player_pos[0] - item_pos[0]) < TILE_SIZE // 2 and abs(player_pos[1] - item_pos[1]) < TILE_SIZE // 2:
+            player_shrunk = True
+
     # 绘制游戏元素
     screen.fill(BACKGROUND_COLOR)
     draw_maze()
-    if 'player' in images:
-        screen.blit(images['player'], (player_pos[0] - TILE_SIZE // 2, player_pos[1] - TILE_SIZE // 2))
+
+    if player_shrunk:
+        if 'player_small' in images:
+            screen.blit(images['player_small'], (player_pos[0] - TILE_SIZE // 2, player_pos[1] - TILE_SIZE // 2))
+        else:
+            pygame.draw.circle(screen, 'red', player_pos, PLAYER_RADIUS // 2)
     else:
-        pygame.draw.circle(screen, 'red', player_pos, TILE_SIZE // 2)
+        if 'player' in images:
+            screen.blit(images['player'], (player_pos[0] - TILE_SIZE // 2, player_pos[1] - TILE_SIZE // 2))
+        else:
+            pygame.draw.circle(screen, 'red', player_pos, TILE_SIZE // 2)
+
+    if 'shrinking_potion' in images:
+        screen.blit(images['shrinking_potion'], (item_pos[0] - TILE_SIZE // 2, item_pos[1] - TILE_SIZE // 2)) 
+    else:
+        pygame.draw.circle(screen, "blue", item_pos, TILE_SIZE // 4) 
 
     if 'exit' in images:
         screen.blit(images['exit'], (exit_pos[0] * TILE_SIZE, exit_pos[1] * TILE_SIZE))
     else:
         pygame.draw.rect(screen, 'green', (exit_pos[0] * TILE_SIZE, exit_pos[1] * TILE_SIZE, TILE_SIZE, TILE_SIZE))
+
+    if 'narrow_path' in images:
+        for pos in narrow_path_pos:
+            screen.blit(images['narrow_path'], (pos[0] * TILE_SIZE, pos[1] * TILE_SIZE))
+    else:
+        pygame.draw.rect(screen, 'grey', (narrow_path_pos[0] * TILE_SIZE, narrow_path_pos[1] * TILE_SIZE, TILE_SIZE, TILE_SIZE))
 
     pygame.display.flip()
     clock.tick(FPS)
