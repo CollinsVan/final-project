@@ -41,8 +41,8 @@ FPS = 30
 PLAYER_SPEED = TILE_SIZE
 
 # 文件夹路径
-IMAGE_FOLDER = r"E:\programming\FINAL Project\final-project\images"
-MUSIC_FOLDER = r"E:\programming\FINAL Project\final-project\music & soundscape"
+IMAGE_FOLDER = "images"
+MUSIC_FOLDER = "music & soundscape"
 MUSIC_FILE = "A-very-happy-christmas.mp3"
 
 # 背景颜色定义
@@ -89,6 +89,7 @@ for y in range(len(MAZE)):
 
 # 对象位置
 player_pos = [1 * TILE_SIZE + TILE_SIZE // 2, 1 * TILE_SIZE + TILE_SIZE // 2]
+rabbit_pos = [3 * TILE_SIZE + TILE_SIZE // 2, 3 * TILE_SIZE + TILE_SIZE // 2]  #兔子的初始位置
 exit_pos = (18, 13)
 item_pos = [9 * TILE_SIZE + TILE_SIZE // 2, 3 * TILE_SIZE + TILE_SIZE // 2]
 narrow_path_pos = [(11, 9), (13, 9)]
@@ -100,7 +101,10 @@ def load_images(folder_path):
         if filename.endswith(('.png', '.jpg', '.jpeg', '.bmp', '.gif')):
             name = os.path.splitext(filename)[0]
             img = pygame.image.load(os.path.join(folder_path, filename))
-            images[name] = pygame.transform.scale(img, (TILE_SIZE, TILE_SIZE))
+            if name == 'start_background':
+                images[name] = img
+            else:
+                images[name] = pygame.transform.scale(img, (TILE_SIZE, TILE_SIZE))
     return images
 # 加载图片
 images = load_images(IMAGE_FOLDER)
@@ -123,6 +127,11 @@ pygame.key.stop_text_input()
 
 #————————————————————————————————————————资源加载完毕————————————————————————————————————————————
 
+# 初始化游戏
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("Alice in Music Maze")
+clock = pygame.time.Clock()
+
 # 检查游戏状态
 player_shrunk = False
 last_move_time = 0
@@ -133,12 +142,11 @@ potion_collected = False  # 用于跟踪药水是否已被碰到
 textbox_message = "Yawn~ The air is so fresh in the forest!"  # 初始文本框消息
 rabbit_staying = False  # 用于标志兔子停留状态
 
-# 设置引导精灵的初始位置和状态
-rabbit_pos = [3 * TILE_SIZE + TILE_SIZE // 2, 3 * TILE_SIZE + TILE_SIZE // 2]
+# 设置兔子的初始状态
 rabbit_visible = False
 rabbit_path = []  # 存储兔子的移动路径
 rabbit_index = 0  # 路径索引
-rabbit_speed = PLAYER_SPEED * 2  # 兔子的移动速度是玩家的两倍
+rabbit_speed = PLAYER_SPEED * 1.5  # 兔子的移动速度是玩家的两倍
 
 # 计算兔子从起点到终点的路径（使用 BFS 或 A* 算法）
 def find_shortest_path(start, end):
@@ -164,11 +172,6 @@ def find_shortest_path(start, end):
 
 # 设置兔子路径
 rabbit_path = find_shortest_path((3, 3), (18, 13))
-
-# 设置显示窗口
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Alice in Music Maze")
-clock = pygame.time.Clock()
 
 # 设置迷宫路线
 def draw_maze():
@@ -212,137 +215,162 @@ def draw_textbox(message):
         screen.blit(speaker_text, (textbox_rect.x + 20, textbox_rect.y + 18))
         screen.blit(message_text, (textbox_rect.x + 20, textbox_rect.y + 46))
 
+
+# 绘制起始页面
+def draw_start_page():
+    screen.fill((169, 169, 169))  # 填充灰色背景
+    
+    # 如果背景图存在，加载并显示
+    if 'start_background' in images:
+        background = pygame.transform.scale(images['start_background'], (WIDTH, HEIGHT))
+        screen.blit(background, (0, 0))
+    
+    # 绘制文本
+    font = pygame.font.Font(None, 36)
+    text = font.render("Press any key to start the game", True, (255, 255, 255))
+    text_rect = text.get_rect(center=(WIDTH // 2, HEIGHT // 2 + 250))
+    screen.blit(text, text_rect)
+    
+    pygame.display.flip()
+
 # ————————————————————————————————地图、人物、音乐等参数设置完毕————————————————————————————————————
 
-#开始运行游戏
 running = True
+game_started = False
 audio_played_tiles = set()  # 用于跟踪已播放音频的地块
+
 while running:
-    # 点击x退出游戏
+    # 处理事件
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
-
-    # 检查文本框显示时间
-    if textbox_visible and pygame.time.get_ticks() - textbox_start_time >= 4000:
-        textbox_visible = False
-        rabbit_visible = True  # 启动兔子的可见性
-
-    # 检查兔子移动逻辑
-    if rabbit_visible and rabbit_index < len(rabbit_path):
-        # 移动兔子，按格子为单位前进
-        current_target = rabbit_path[rabbit_index]
-        target_x, target_y = current_target[0] * TILE_SIZE + TILE_SIZE // 2, current_target[
-            1] * TILE_SIZE + TILE_SIZE // 2
-
-        # 计算兔子的当前位置与目标位置的距离
-        if abs(rabbit_pos[0] - target_x) > rabbit_speed / 10 or abs(rabbit_pos[1] - target_y) > rabbit_speed / 10:
-            # 逐步移动兔子
-            if rabbit_pos[0] < target_x:
-                rabbit_pos[0] += rabbit_speed / 10
-            elif rabbit_pos[0] > target_x:
-                rabbit_pos[0] -= rabbit_speed / 10
-
-            if rabbit_pos[1] < target_y:
-                rabbit_pos[1] += rabbit_speed / 10
-            elif rabbit_pos[1] > target_y:
-                rabbit_pos[1] -= rabbit_speed / 10
-        else:
-            # 如果到达目标位置，移动到下一个目标
-            rabbit_index += 1
-
-            # 如果到达终点
-            if rabbit_index >= len(rabbit_path):
-                rabbit_staying = True  # 兔子停留状态
-                rabbit_visible = False  # 隐藏兔子
-
-    # 检查按键并更新位置
-    current_time = pygame.time.get_ticks()
-    keys = pygame.key.get_pressed()
-    new_pos = player_pos[:]
-
-    if current_time - last_move_time >= move_cooldown:
-        if keys[pygame.K_w]:
-            new_pos[1] -= PLAYER_SPEED
-        elif keys[pygame.K_s]:
-            new_pos[1] += PLAYER_SPEED
-        elif keys[pygame.K_a]:
-            new_pos[0] -= PLAYER_SPEED
-        elif keys[pygame.K_d]:
-            new_pos[0] += PLAYER_SPEED
-
-        if can_move(new_pos):
-            player_pos = new_pos
-            last_move_time = current_time
-
-            # 播放地块绑定的音效
-            grid_x = player_pos[0] // TILE_SIZE
-            grid_y = player_pos[1] // TILE_SIZE
-            if (grid_x, grid_y) in tile_sounds and (grid_x, grid_y) not in audio_played_tiles:
-                tile_sound = tile_sounds[(grid_x, grid_y)]
-                tile_sound.play()
-                audio_played_tiles.add((grid_x, grid_y))  # 将地块添加到已播放集合中
-
-        # 检查药水碰撞
-        if not potion_collected and abs(player_pos[0] - item_pos[0]) < TILE_SIZE // 2 and abs(
-                player_pos[1] - item_pos[1]) < TILE_SIZE // 2:
-            player_shrunk = True
-            shrinking_potion_sound.play()  # 播放缩小药水音效
-
-        # 检查玩家是否碰到窄路
-        if (new_pos[0] // TILE_SIZE, new_pos[1] // TILE_SIZE) in narrow_path_pos and not player_shrunk:
-            textbox_message = "Emmm, I'm too big, is there any way to get smaller?"
-            textbox_visible = True
-            textbox_start_time = pygame.time.get_ticks()  # 重置显示时间
-
-    # 绘制游戏元素
-    screen.fill(BACKGROUND_COLOR)
-    draw_maze()
-
-    # 绘制玩家
-    if player_shrunk:
-        if 'player_small' in images:
-            screen.blit(images['player_small'], (player_pos[0] - TILE_SIZE // 2, player_pos[1] - TILE_SIZE // 2))
-        else:
-            pygame.draw.circle(screen, 'red', player_pos, PLAYER_RADIUS // 2)
+        if not game_started and event.type == pygame.KEYDOWN:  # 玩家按下任意键开始游戏
+            game_started = True
+    if not game_started:
+        draw_start_page()
     else:
-        if 'player' in images:
-            screen.blit(images['player'], (player_pos[0] - TILE_SIZE // 2, player_pos[1] - TILE_SIZE // 2))
+        
+        # 检查文本框显示时间
+        if textbox_visible and pygame.time.get_ticks() - textbox_start_time >= 4000:
+            textbox_visible = False
+            rabbit_visible = True  # 启动兔子的可见性
+
+        # 检查兔子移动逻辑
+        if rabbit_visible and rabbit_index < len(rabbit_path):
+            # 移动兔子，按格子为单位前进
+            current_target = rabbit_path[rabbit_index]
+            target_x, target_y = current_target[0] * TILE_SIZE + TILE_SIZE // 2, current_target[
+                1] * TILE_SIZE + TILE_SIZE // 2
+
+            # 计算兔子的当前位置与目标位置的距离
+            if abs(rabbit_pos[0] - target_x) > rabbit_speed / 10 or abs(rabbit_pos[1] - target_y) > rabbit_speed / 10:
+                # 逐步移动兔子
+                if rabbit_pos[0] < target_x:
+                    rabbit_pos[0] += rabbit_speed / 10
+                elif rabbit_pos[0] > target_x:
+                    rabbit_pos[0] -= rabbit_speed / 10
+
+                if rabbit_pos[1] < target_y:
+                    rabbit_pos[1] += rabbit_speed / 10
+                elif rabbit_pos[1] > target_y:
+                    rabbit_pos[1] -= rabbit_speed / 10
+            else:
+                # 如果到达目标位置，移动到下一个目标
+                rabbit_index += 1
+
+                # 如果到达终点
+                if rabbit_index >= len(rabbit_path):
+                    rabbit_staying = True  # 兔子停留状态
+                    rabbit_visible = False  # 隐藏兔子
+
+        # 检查按键并更新位置
+        if not textbox_visible:  # 只有在文本框不显示时，才允许移动
+            current_time = pygame.time.get_ticks()
+            keys = pygame.key.get_pressed()
+            new_pos = player_pos[:]
+
+            if current_time - last_move_time >= move_cooldown:
+                if keys[pygame.K_w]:
+                    new_pos[1] -= PLAYER_SPEED
+                elif keys[pygame.K_s]:
+                    new_pos[1] += PLAYER_SPEED
+                elif keys[pygame.K_a]:
+                    new_pos[0] -= PLAYER_SPEED
+                elif keys[pygame.K_d]:
+                    new_pos[0] += PLAYER_SPEED
+
+                if can_move(new_pos):
+                    player_pos = new_pos
+                    last_move_time = current_time
+
+                    # 播放地块绑定的音效
+                    grid_x = player_pos[0] // TILE_SIZE
+                    grid_y = player_pos[1] // TILE_SIZE
+                    if (grid_x, grid_y) in tile_sounds and (grid_x, grid_y) not in audio_played_tiles:
+                        tile_sound = tile_sounds[(grid_x, grid_y)]
+                        tile_sound.play()
+                        audio_played_tiles.add((grid_x, grid_y))  # 将地块添加到已播放集合中
+
+                # 检查药水碰撞
+                if not potion_collected and abs(player_pos[0] - item_pos[0]) < TILE_SIZE // 2 and abs(
+                        player_pos[1] - item_pos[1]) < TILE_SIZE // 2:
+                    player_shrunk = True
+                    shrinking_potion_sound.play()  # 播放缩小药水音效
+
+                # 检查玩家是否碰到窄路
+                if (new_pos[0] // TILE_SIZE, new_pos[1] // TILE_SIZE) in narrow_path_pos and not player_shrunk:
+                    textbox_message = "Emmm, I'm too big, is there any way to get smaller?"
+                    textbox_visible = True
+                    textbox_start_time = pygame.time.get_ticks()  # 重置显示时间
+
+        # 绘制游戏元素
+        screen.fill(BACKGROUND_COLOR)
+        draw_maze()
+
+        # 绘制玩家
+        if player_shrunk:
+            if 'player_small' in images:
+                screen.blit(images['player_small'], (player_pos[0] - TILE_SIZE // 2, player_pos[1] - TILE_SIZE // 2))
+            else:
+                pygame.draw.circle(screen, 'red', player_pos, PLAYER_RADIUS // 2)
         else:
-            pygame.draw.circle(screen, 'red', player_pos, TILE_SIZE // 2)
+            if 'player' in images:
+                screen.blit(images['player'], (player_pos[0] - TILE_SIZE // 2, player_pos[1] - TILE_SIZE // 2))
+            else:
+                pygame.draw.circle(screen, 'red', player_pos, TILE_SIZE // 2)
 
-    # 绘制缩小药水
-    if 'shrinking_potion' in images:
-        screen.blit(images['shrinking_potion'], (item_pos[0] - TILE_SIZE // 2, item_pos[1] - TILE_SIZE // 2))
-    else:
-        pygame.draw.circle(screen, "blue", item_pos, TILE_SIZE // 4)
-
-    # 绘制出口
-    if 'exit' in images:
-        screen.blit(images['exit'], (exit_pos[0] * TILE_SIZE, exit_pos[1] * TILE_SIZE))
-    else:
-        pygame.draw.rect(screen, 'green', (exit_pos[0] * TILE_SIZE, exit_pos[1] * TILE_SIZE, TILE_SIZE, TILE_SIZE))
-
-    # 绘制狭窄路径
-    if 'narrow_path' in images:
-        for pos in narrow_path_pos:
-            screen.blit(images['narrow_path'], (pos[0] * TILE_SIZE, pos[1] * TILE_SIZE))
-    else:
-        for pos in narrow_path_pos:
-            pygame.draw.rect(screen, 'grey', (pos[0] * TILE_SIZE, pos[1] * TILE_SIZE, TILE_SIZE, TILE_SIZE))
-
-    # 绘制文本框
-    draw_textbox(textbox_message)
-
-    # 绘制引导精灵
-    if rabbit_visible:
-        if 'rabbit' in images:
-            screen.blit(images['rabbit'], (rabbit_pos[0] - TILE_SIZE // 2, rabbit_pos[1] - TILE_SIZE // 2))
+        # 绘制缩小药水
+        if 'shrinking_potion' in images:
+            screen.blit(images['shrinking_potion'], (item_pos[0] - TILE_SIZE // 2, item_pos[1] - TILE_SIZE // 2))
         else:
-            pygame.draw.circle(screen, 'orange', rabbit_pos, TILE_SIZE // 2)
+            pygame.draw.circle(screen, "blue", item_pos, TILE_SIZE // 4)
 
-    pygame.display.flip()
-    clock.tick(FPS)
+        # 绘制出口
+        if 'exit' in images:
+            screen.blit(images['exit'], (exit_pos[0] * TILE_SIZE, exit_pos[1] * TILE_SIZE))
+        else:
+            pygame.draw.rect(screen, 'green', (exit_pos[0] * TILE_SIZE, exit_pos[1] * TILE_SIZE, TILE_SIZE, TILE_SIZE))
+
+        # 绘制狭窄路径
+        if 'narrow_path' in images:
+            for pos in narrow_path_pos:
+                screen.blit(images['narrow_path'], (pos[0] * TILE_SIZE, pos[1] * TILE_SIZE))
+        else:
+            for pos in narrow_path_pos:
+                pygame.draw.rect(screen, 'grey', (pos[0] * TILE_SIZE, pos[1] * TILE_SIZE, TILE_SIZE, TILE_SIZE))
+
+        # 绘制文本框
+        draw_textbox(textbox_message)
+
+        # 绘制引导精灵
+        if rabbit_visible:
+            if 'rabbit' in images:
+                screen.blit(images['rabbit'], (rabbit_pos[0] - TILE_SIZE // 2, rabbit_pos[1] - TILE_SIZE // 2))
+            else:
+                pygame.draw.circle(screen, 'orange', rabbit_pos, TILE_SIZE // 2)
+
+        pygame.display.flip()
+        clock.tick(FPS)
 
 pygame.quit()
 sys.exit()
