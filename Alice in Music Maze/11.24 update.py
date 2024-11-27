@@ -146,7 +146,7 @@ rabbit_staying = False  # 用于标志兔子停留状态
 rabbit_visible = False
 rabbit_path = []  # 存储兔子的移动路径
 rabbit_index = 0  # 路径索引
-rabbit_speed = PLAYER_SPEED * 1.5  # 兔子的移动速度是玩家的两倍
+rabbit_task_done = False  # 标志是否完成兔子移动任务
 
 # 计算兔子从起点到终点的路径（使用 BFS 或 A* 算法）
 def find_shortest_path(start, end):
@@ -249,39 +249,49 @@ while running:
     if not game_started:
         draw_start_page()
     else:
-        
+
         # 检查文本框显示时间
         if textbox_visible and pygame.time.get_ticks() - textbox_start_time >= 4000:
             textbox_visible = False
-            rabbit_visible = True  # 启动兔子的可见性
+
+            # 如果任务未完成，启动兔子移动
+            if not rabbit_task_done:
+                rabbit_visible = True  # 兔子开始可见
 
         # 检查兔子移动逻辑
         if rabbit_visible and rabbit_index < len(rabbit_path):
-            # 移动兔子，按格子为单位前进
-            current_target = rabbit_path[rabbit_index]
-            target_x, target_y = current_target[0] * TILE_SIZE + TILE_SIZE // 2, current_target[
-                1] * TILE_SIZE + TILE_SIZE // 2
+            current_time = pygame.time.get_ticks()
+            if current_time - last_move_time >= move_cooldown:
+                # 获取当前目标格子
+                current_target = rabbit_path[rabbit_index]
+                target_x, target_y = current_target[0] * TILE_SIZE + TILE_SIZE // 2, current_target[
+                    1] * TILE_SIZE + TILE_SIZE // 2
 
-            # 计算兔子的当前位置与目标位置的距离
-            if abs(rabbit_pos[0] - target_x) > rabbit_speed / 10 or abs(rabbit_pos[1] - target_y) > rabbit_speed / 10:
-                # 逐步移动兔子
+                # 计算兔子下一步移动方向
+                new_pos = rabbit_pos[:]
                 if rabbit_pos[0] < target_x:
-                    rabbit_pos[0] += rabbit_speed / 10
+                    new_pos[0] += TILE_SIZE
                 elif rabbit_pos[0] > target_x:
-                    rabbit_pos[0] -= rabbit_speed / 10
+                    new_pos[0] -= TILE_SIZE
 
                 if rabbit_pos[1] < target_y:
-                    rabbit_pos[1] += rabbit_speed / 10
+                    new_pos[1] += TILE_SIZE
                 elif rabbit_pos[1] > target_y:
-                    rabbit_pos[1] -= rabbit_speed / 10
-            else:
-                # 如果到达目标位置，移动到下一个目标
-                rabbit_index += 1
+                    new_pos[1] -= TILE_SIZE
+
+                # 更新兔子的位置
+                rabbit_pos = new_pos
+                last_move_time = current_time
+
+                # 如果兔子到达目标格子，更新路径索引
+                if rabbit_pos[0] == target_x and rabbit_pos[1] == target_y:
+                    rabbit_index += 1
 
                 # 如果到达终点
                 if rabbit_index >= len(rabbit_path):
                     rabbit_staying = True  # 兔子停留状态
                     rabbit_visible = False  # 隐藏兔子
+                    rabbit_task_done = True  # 标记任务完成
 
         # 检查按键并更新位置
         if not textbox_visible:  # 只有在文本框不显示时，才允许移动
