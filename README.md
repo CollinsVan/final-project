@@ -3,8 +3,9 @@
 Creator:
 
 guanghuai477 - Su Minghan
-CollinsVan - Fan Yuyue
 
+CollinsVan - Fan Yuyue
+#
 Game description:
 
 On an ordinary afternoon, Alice follows a strange white rabbit and unknowingly falls into a mysterious cave. When she comes back to her senses, she finds herself in a strange musical maze. Please help Alice find her way home!
