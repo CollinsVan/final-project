@@ -1,5 +1,9 @@
 # Alice in Music Maze
 #
+Creator:
+
+guanghuai477 - Su Minghan
+CollinsVan - Fan Yuyue
 
 Game description:
 
