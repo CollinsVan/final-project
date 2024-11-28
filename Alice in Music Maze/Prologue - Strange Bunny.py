@@ -15,8 +15,8 @@ FPS = 30
 PLAYER_SPEED = TILE_SIZE
 
 # 文件夹路径
-IMAGE_FOLDER = r"E:\programming\FINAL Project\final-project\images"
-MUSIC_FOLDER = r"E:\programming\FINAL Project\final-project\music & soundscape"
+IMAGE_FOLDER = "images"
+MUSIC_FOLDER = "music & soundscape"
 MUSIC_FILE = "A-very-happy-christmas.mp3"
 
 # 背景颜色定义
