@@ -11,9 +11,11 @@ Use “A”, “S”, “D”, “W” on the keyboard to control Alice out of t
 #
 How to download the game:
 
-Browser copy the link below and download the full folder, or copy the file path to a program that supports running python code.
+Browsers copy the link below to access our project repository. You can choose to fork our project code to your repository.
 
-(PyCharm or VScode is recommended)
+Open your programming software, PyCharm or VScode is recommended, and use “Git-clone” to paste the above link to the “URL”.
+
+Now you have all the files of our project.
 
 https://github.com/CollinsVan/final-project.git
 #
