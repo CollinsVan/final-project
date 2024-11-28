@@ -3,6 +3,11 @@ import sys
 import os
 import time
 import random
+from pathlib import Path
+
+# 基本路径设置
+base_path = Path(__file__).parent.parent
+print(base_path)
 
 # 初始化Pygame
 pygame.init()
@@ -15,9 +20,9 @@ FPS = 30
 PLAYER_SPEED = TILE_SIZE
 
 # 文件夹路径
-IMAGE_FOLDER = "images"
-MUSIC_FOLDER = "music & soundscape"
-MUSIC_FILE = "A-very-happy-christmas.mp3"
+IMAGE_FOLDER = base_path / "images"
+MUSIC_FOLDER = base_path / "music & soundscape"
+MUSIC_FILE = MUSIC_FOLDER / "A-very-happy-christmas.mp3"
 
 # 背景颜色定义
 BACKGROUND_COLOR = "white"
@@ -92,7 +97,7 @@ def load_music(music_file):
     pygame.mixer.music.play(-1)
 def load_finish_music():
     pygame.mixer.music.load(os.path.join(MUSIC_FOLDER, "finish_music.mp3"))
-    pygame.mixer.music.play(-1)  # 播放一次
+    pygame.mixer.music.play(-1)
 # 加载背景音乐
 load_music(MUSIC_FILE)
 
@@ -112,6 +117,12 @@ pygame.key.stop_text_input()
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Alice in Music Maze")
 clock = pygame.time.Clock()
+
+# 初始化状态变量
+message_shown = {
+    "ground_sing": False,
+    "shrink": False
+}
 
 # 检查游戏状态
 player_shrunk = False
@@ -225,6 +236,7 @@ def draw_start_page():
 running = True
 game_started = False
 audio_played_tiles = set()  # 用于跟踪已播放音频的地块
+game_over = False  # 新增游戏结束标志
 
 while running:
     # 处理事件
@@ -233,9 +245,21 @@ while running:
             running = False
         if not game_started and event.type == pygame.KEYDOWN:  # 玩家按下任意键开始游戏
             game_started = True
+
     if not game_started:
         draw_start_page()
     else:
+        if game_over:
+            # 只在游戏结束时绘制完成画面和文本
+            screen.blit(finish_image, (0, 0))  # 显示完成图片
+            font = pygame.font.Font(None, 24)
+            text = font.render(end_text_message, True, (191, 155, 11))
+            text_rect = text.get_rect(center=(WIDTH // 2, HEIGHT // 2 + 250))
+            screen.blit(text, text_rect)
+
+            pygame.display.flip()  # 更新屏幕
+            continue  # 跳过后续绘制逻辑
+
         # 检查文本框显示时间
         if textbox_visible and pygame.time.get_ticks() - textbox_start_time >= 2000:
             textbox_visible = False
@@ -320,29 +344,24 @@ while running:
                     textbox_start_time = pygame.time.get_ticks()  # 重置显示时间
 
             # 检查玩家是否走到特定地块 (3, 1)
-            if (new_pos[0] // TILE_SIZE, new_pos[1] // TILE_SIZE) == (3, 1):
+            if (new_pos[0] // TILE_SIZE, new_pos[1] // TILE_SIZE) == (3, 1) and not message_shown["ground_sing"]:
                 textbox_message = "Do these grounds sing?"
                 textbox_visible = True
                 textbox_start_time = pygame.time.get_ticks()  # 重置显示时间
+                message_shown["ground_sing"] = True  # 标记消息已显示
 
             # 检查玩家是否走到特定地块 (12, 9)
-            if (new_pos[0] // TILE_SIZE, new_pos[1] // TILE_SIZE) == (12, 9):
+            if (new_pos[0] // TILE_SIZE, new_pos[1] // TILE_SIZE) == (12, 9) and not message_shown["shrink"]:
                 textbox_message = "Oh! I can get through them!"
                 textbox_visible = True
                 textbox_start_time = pygame.time.get_ticks()  # 重置显示时间
+                message_shown["shrink"] = True  # 标记消息已显示
 
             # 检查玩家是否到达出口
             if (player_pos[0] // TILE_SIZE, player_pos[1] // TILE_SIZE) == exit_pos:
+                game_over = True  # 设置游戏结束标志
+                end_text_visible = True  # 显示结束文本框
                 load_finish_music()  # 播放完成音乐
-                screen.blit(finish_image, (0, 0))  # 显示完成图片
-                # 绘制文本
-                font = pygame.font.Font(None, 24)
-                text = font.render("Alice chases a rabbit down a hole ...... Stay tuned for the rest of the story!", True, (191, 155, 11))
-                text_rect = text.get_rect(center=(WIDTH // 2, HEIGHT // 2 + 250))
-                screen.blit(text, text_rect)
-
-                pygame.display.flip()  # 更新屏幕
-                pygame.time.delay(1000)  # 显示完成图片1秒
 
         # 绘制游戏元素
         screen.fill(BACKGROUND_COLOR)
@@ -389,6 +408,16 @@ while running:
 
         # 绘制文本框
         draw_textbox(textbox_message)
+
+        # 若游戏结束，绘制完成画面
+        if game_over:
+            screen.blit(finish_image, (0, 0))
+            if end_text_visible:
+                font = pygame.font.Font(None, 24)
+                end_text = font.render(end_text_message, True, (191, 155, 11))
+                end_text_rect = end_text.get_rect(center=(WIDTH // 2, HEIGHT // 2 + 250))
+                screen.blit(end_text, end_text_rect)
+
 
         pygame.display.flip()
         clock.tick(FPS)
