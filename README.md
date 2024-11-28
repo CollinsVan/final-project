@@ -20,6 +20,7 @@ Now you have all the files of our project.
 https://github.com/CollinsVan/final-project.git
 #
 Game Over Method:
+
 Click the “X” in the upper right corner to exit the game.
 
 
