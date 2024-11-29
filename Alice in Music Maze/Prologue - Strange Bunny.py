@@ -80,7 +80,7 @@ def load_images(folder_path):
         if filename.endswith(('.png', '.jpg', '.jpeg', '.bmp', '.gif')):
             name = os.path.splitext(filename)[0]
             img = pygame.image.load(os.path.join(folder_path, filename))
-            if name == 'start_background':
+            if name == 'start_background' or name == 'finish':
                 images[name] = img
             else:
                 images[name] = pygame.transform.scale(img, (TILE_SIZE, TILE_SIZE))
@@ -88,8 +88,6 @@ def load_images(folder_path):
 
 # 加载图片
 images = load_images(IMAGE_FOLDER)
-# 加载完成图片
-finish_image = pygame.image.load(os.path.join(IMAGE_FOLDER, "finish.png"))
 
 # 加载背景音乐
 def load_music(music_file):
@@ -235,8 +233,10 @@ def draw_start_page():
 
 running = True
 game_started = False
+game_over = False
 audio_played_tiles = set()  # 用于跟踪已播放音频的地块
-game_over = False  # 新增游戏结束标志
+textbox_visible = False  # 新增文本框显示状态
+
 
 while running:
     # 处理事件
@@ -245,17 +245,24 @@ while running:
             running = False
         if not game_started and event.type == pygame.KEYDOWN:  # 玩家按下任意键开始游戏
             game_started = True
+            textbox_visible = True  # 游戏开始时显示文本框
+            textbox_start_time = pygame.time.get_ticks() # 记录文本框显示的开始时间
+        if game_over and event.type == pygame.KEYDOWN:  # 游戏结束后按任意键退出
+            running = False
 
     if not game_started:
         draw_start_page()
     else:
         if game_over:
             # 只在游戏结束时绘制完成画面和文本
-            screen.blit(finish_image, (0, 0))  # 显示完成图片
-            font = pygame.font.Font(None, 24)
-            text = font.render(end_text_message, True, (191, 155, 11))
-            text_rect = text.get_rect(center=(WIDTH // 2, HEIGHT // 2 + 250))
-            screen.blit(text, text_rect)
+            if 'finish' in images:
+                finish_image = pygame.transform.scale(images['finish'], (WIDTH, HEIGHT))
+                screen.blit(finish_image, (0, 0))
+            if end_text_visible:
+                font = pygame.font.Font(None, 24)
+                text = font.render(end_text_message, True, (191, 155, 11))
+                text_rect = text.get_rect(center=(WIDTH // 2, HEIGHT // 2 + 250))
+                screen.blit(text, text_rect)
 
             pygame.display.flip()  # 更新屏幕
             continue  # 跳过后续绘制逻辑
@@ -408,16 +415,6 @@ while running:
 
         # 绘制文本框
         draw_textbox(textbox_message)
-
-        # 若游戏结束，绘制完成画面
-        if game_over:
-            screen.blit(finish_image, (0, 0))
-            if end_text_visible:
-                font = pygame.font.Font(None, 24)
-                end_text = font.render(end_text_message, True, (191, 155, 11))
-                end_text_rect = end_text.get_rect(center=(WIDTH // 2, HEIGHT // 2 + 250))
-                screen.blit(end_text, end_text_rect)
-
 
         pygame.display.flip()
         clock.tick(FPS)
